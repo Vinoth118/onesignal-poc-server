@@ -35,8 +35,8 @@ export class AppController {
   }
 
   @Post('/login')
-  async loginUser(@Body() data: { email: string }) {
-    const result = await this.appService.loginUser(data.email);
+  async loginUser(@Subdomain() subdomain: 'vinoth' | 'vijay' | 'johny', @Body() data: { email: string }) {
+    const result = await this.appService.loginUser(data.email, subdomain);
     return {
       success: result != null,
       data: result
