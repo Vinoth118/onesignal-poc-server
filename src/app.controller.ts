@@ -1,8 +1,7 @@
 import { Body, Controller, createParamDecorator, ExecutionContext, Get, Post, HttpException, HttpStatus, BadRequestException } from '@nestjs/common';
 import { getSubdomain } from 'tldts';
 import { AppService, User } from './app.service';
-import * as rawbody from 'raw-body';
-
+var rawbody = require('raw-body')
 
 const Subdomain = createParamDecorator(
   (data: unknown, ctx: ExecutionContext) => {
