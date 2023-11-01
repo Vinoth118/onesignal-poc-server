@@ -25,6 +25,7 @@ export class AppController {
 
   @Post('/register')
   async registerUser(@Subdomain() subdomain: 'vinoth' | 'vijay' | 'johny', @Body() data: User & { registerFrom: 'CLIENT' | 'ADMIN' }) {
+    console.log('payload data from req: ', data);
     const { registerFrom, org, ...rest } = data;
     const registerUserData = { ...rest, org: registerFrom == 'ADMIN' ? org : subdomain };
     const result = await this.appService.registerUser(registerUserData);

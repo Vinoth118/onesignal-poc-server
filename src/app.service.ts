@@ -64,6 +64,7 @@ export class AppService {
     const { onesignalAppId, restApiKey, ...rest } = this.organisationDetails.find(e => e.name == user.org);
     console.log('on create user orgDetails: ', rest);
     const payload = { identity: { external_id: user.id } };
+    console.log('create user payload: ', payload);
     try {
       const res = await axios.post(`https://onesignal.com/api/v1/apps/${onesignalAppId}/users`, payload);
       this.users.forEach(e => {
