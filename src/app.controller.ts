@@ -1,6 +1,8 @@
-import { Body, Controller, createParamDecorator, ExecutionContext, Get, Post } from '@nestjs/common';
+import { Body, Controller, createParamDecorator, ExecutionContext, Get, Post, HttpException, HttpStatus, BadRequestException } from '@nestjs/common';
 import { getSubdomain } from 'tldts';
 import { AppService, User } from './app.service';
+import * as rawbody from 'raw-body';
+
 
 const Subdomain = createParamDecorator(
   (data: unknown, ctx: ExecutionContext) => {
@@ -9,6 +11,13 @@ const Subdomain = createParamDecorator(
     return subdomain ?? 'vinoth';
   },
 );
+
+export const PlainBody = createParamDecorator(async (_, context: ExecutionContext) => {
+  const req = context.switchToHttp().getRequest<import("express").Request>();
+  if (!req.readable) { throw new BadRequestException("Invalid body"); }
+  const body = (await rawbody(req)).toString("utf8").trim();
+  return JSON.parse(body);
+})
 
 @Controller('/')
 export class AppController {
@@ -24,7 +33,7 @@ export class AppController {
   }
 
   @Post('/register')
-  async registerUser(@Subdomain() subdomain: 'vinoth' | 'vijay' | 'johny', @Body() data: User & { registerFrom: 'CLIENT' | 'ADMIN' }) {
+  async registerUser(@Subdomain() subdomain: 'vinoth' | 'vijay' | 'johny', @PlainBody() data: User & { registerFrom: 'CLIENT' | 'ADMIN' }) {
     console.log('payload data from req: ', data);
     const { registerFrom, org, ...rest } = data;
     const registerUserData = { ...rest, org: registerFrom == 'ADMIN' ? org : subdomain };
@@ -36,7 +45,7 @@ export class AppController {
   }
 
   @Post('/login')
-  async loginUser(@Subdomain() subdomain: 'vinoth' | 'vijay' | 'johny', @Body() data: { email: string }) {
+  async loginUser(@Subdomain() subdomain: 'vinoth' | 'vijay' | 'johny', @PlainBody() data: { email: string }) {
     const result = await this.appService.loginUser(data.email, subdomain);
     return {
       success: result != null,

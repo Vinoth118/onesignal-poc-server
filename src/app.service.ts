@@ -75,7 +75,7 @@ export class AppService {
       });
       console.log(res.data)
     } catch(e) {
-      console.log('error while creating user', e);
+      //console.log('error while creating user', e);
       console.log('error data while creating user', e.response.data);
     }
   }
