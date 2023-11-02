@@ -96,11 +96,12 @@ export class AppService {
         break;
       }
     }
-
+    const user = this.users.find(e => e.id == data.userId);
+    const org = this.organisationDetails.find(e => e.name == user.org);
     try {
       const res = await axios.post(`https://onesignal.com/api/v1/notifications`, payload, {
         headers: {
-          Authorization: `Basic ${orgDetails.restApiKey}`
+          Authorization: `Basic ${org.restApiKey}`
         }
       });
       if(res.data) {
