@@ -70,6 +70,7 @@ export class AppService {
   async notify(data: NotificationPayload) {
     let orgDetails = this.organisationDetails.find(e => e.name === data.org);
     if(orgDetails == null) orgDetails = this.organisationDetails[0];
+    let apiKey = orgDetails.restApiKey;
     const payload  = {
       app_id: orgDetails.onesignalAppId,
       name: `Message from ${orgDetails.id}`,
@@ -93,15 +94,14 @@ export class AppService {
         const org = this.organisationDetails.find(e => e.name == user.org);
         payload['app_id'] = org.onesignalAppId;
         payload['external_id'] = user.osId;
+        apiKey = org.restApiKey;
         break;
       }
     }
-    const user = this.users.find(e => e.id == data.userId);
-    const org = this.organisationDetails.find(e => e.name == user.org);
     try {
       const res = await axios.post(`https://onesignal.com/api/v1/notifications`, payload, {
         headers: {
-          Authorization: `Basic ${org.restApiKey}`
+          Authorization: `Basic ${apiKey}`
         }
       });
       if(res.data) {
