@@ -74,7 +74,7 @@ export class AppService {
     let apiKey = orgDetails.restApiKey;
     const payload  = {
       app_id: orgDetails.onesignalAppId,
-      name: `Message from ${orgDetails.id}`,
+      name: `Message from ${orgDetails.name}`,
       contents: {
         en: data.msg,
         es: data.msg
@@ -94,7 +94,7 @@ export class AppService {
         const user = this.users.find(e => e.id == data.userId);
         const org = this.organisationDetails.find(e => e.name == user.org);
         payload['app_id'] = org.onesignalAppId;
-        payload['external_id'] = user.osId;
+        payload['external_id'] = user.id;
         apiKey = org.restApiKey;
         break;
       }
