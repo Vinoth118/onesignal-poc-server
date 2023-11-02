@@ -92,7 +92,7 @@ export class AppService {
         const user = this.users.find(e => e.id == data.userId);
         const org = this.organisationDetails.find(e => e.name == user.org);
         payload['app_id'] = org.onesignalAppId;
-        payload['external_id'] = data.userId;
+        payload['external_id'] = user.osId;
         break;
       }
     }
