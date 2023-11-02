@@ -107,6 +107,7 @@ export class AppService {
         return res.data;
       }
     } catch(e) {
+      console.log(e);
       console.log('error data while sending notification: ', e.response.data)
       return null;
     }
