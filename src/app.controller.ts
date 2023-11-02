@@ -1,6 +1,6 @@
 import { Body, Controller, createParamDecorator, ExecutionContext, Get, Post, HttpException, HttpStatus, BadRequestException } from '@nestjs/common';
 import { getSubdomain } from 'tldts';
-import { AppService, User } from './app.service';
+import { AppService, NotificationPayload, User } from './app.service';
 var rawbody = require('raw-body')
 
 const Subdomain = createParamDecorator(
@@ -33,7 +33,6 @@ export class AppController {
 
   @Post('/register')
   async registerUser(@Subdomain() subdomain: 'vinoth' | 'vijay' | 'johny', @PlainBody() data: User & { registerFrom: 'CLIENT' | 'ADMIN' }) {
-    console.log('payload data from req: ', data);
     const { registerFrom, org, ...rest } = data;
     const registerUserData = { ...rest, org: registerFrom == 'ADMIN' ? org : subdomain };
     const result = await this.appService.registerUser(registerUserData);
@@ -46,6 +45,15 @@ export class AppController {
   @Post('/login')
   async loginUser(@Subdomain() subdomain: 'vinoth' | 'vijay' | 'johny', @PlainBody() data: { email: string }) {
     const result = await this.appService.loginUser(data.email, subdomain);
+    return {
+      success: result != null,
+      data: result
+    }
+  }
+
+  @Post('/notify')
+  async notify(@PlainBody() data: NotificationPayload) {
+    const result = await this.appService.notify(data);
     return {
       success: result != null,
       data: result

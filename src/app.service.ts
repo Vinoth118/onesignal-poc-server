@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 
+export interface NotificationPayload { 
+  msg: string, 
+  to: 'all' | 'org' | 'user', 
+  org: 'vinoth' | 'vijay' | 'johny', 
+  userId: string
+}
+
 export interface User {
   id: string,
   name: string,
@@ -17,20 +24,20 @@ export class AppService {
     {
       name: 'vinoth',
       id: 'vinoth.trendytreasures.nl',
-      onesignalAppId: '8559621e-4a6f-4d87-859d-e60f0e5620c8',
-      restApiKey: 'NjdiMzk1ZWEtZjQwZS00YTRhLTlhNGItMjQ5NTc3MGIyNzFm'
+      onesignalAppId: 'f1d85bd3-8bf5-4866-a660-d9a716351907',
+      restApiKey: 'MWVmY2Y1N2MtYjk1NS00YWJhLWEyMzUtMWU4YjZmZTU0MTg4'
     },
     {
       name: 'vijay',
       id: 'vijay.trendytreasures.nl',
-      onesignalAppId: '5febf5d2-1a07-42a8-a538-97f0ed340e3f',
-      restApiKey: 'YzVjMzUwMjQtNzViYy00ZmMyLTk1M2QtNjgzMDdjNTYxMTRh'
+      onesignalAppId: '5c07872a-6df4-45e0-b9b9-b935091cdf75',
+      restApiKey: 'OTllMTliNzAtN2RlMi00MTUxLTkwZWEtYWI1OTFhYjBkMmUx'
     },
     {
       name: 'johny',
       id: 'johny.trendytreasures.nl',
-      onesignalAppId: '0ea7f719-690e-4afe-bc65-2914624f3576',
-      restApiKey: 'NTMyZjkyNjctZjhlYi00ZjAxLThiM2QtOTlhZjE1YWMzMmE0'
+      onesignalAppId: 'ff35c29e-a33c-4c48-8fc0-667f85fda4cb',
+      restApiKey: 'ZDRkYjk3YjMtYjVmZC00OGQ2LWEyYTgtNmE4M2M5MTAyMjVk'
     }
   ];
 
@@ -41,7 +48,7 @@ export class AppService {
   async registerUser(data: User) {
     const foundUser = this.users.find(e => e.email == data.email && e.org == data.org);
     if(foundUser) return null;
-    const id = data.email;
+    const id = data.email + '-' + Math.random().toString();
     const user = { ...data, id };
     this.users.push(user);
 
@@ -60,9 +67,54 @@ export class AppService {
     return { user: foundUser, oneSignalAppId: orgDetails.onesignalAppId };
   }
 
+  async notify(data: NotificationPayload) {
+    let orgDetails = this.organisationDetails.find(e => e.name === data.org);
+    if(orgDetails == null) orgDetails = this.organisationDetails[0];
+    const payload  = {
+      app_id: orgDetails.onesignalAppId,
+      name: `Message from ${orgDetails.id}`,
+      content: {
+        en: data.msg,
+        es: data.msg
+      },
+      included_segments: [
+        "Total Subscriptions"
+      ],
+    };
+    switch(data.to) {
+      case 'all': {
+        break;
+      }
+      case 'org': {
+        break;
+      }
+      case 'user': {
+        const user = this.users.find(e => e.id == data.userId);
+        const org = this.organisationDetails.find(e => e.name == user.org);
+        payload['app_id'] = org.onesignalAppId;
+        payload['external_id'] = data.userId;
+        break;
+      }
+    }
+
+    try {
+      const res = await axios.post(`https://onesignal.com/api/v1/notifications`, payload, {
+        headers: {
+          Authorization: `Basic ${orgDetails.restApiKey}`
+        }
+      });
+      if(res.data) {
+        return res.data;
+      }
+    } catch(e) {
+      console.log('error data while sending notification: ', e.response.data)
+      return null;
+    }
+    
+  }
+
   async createOnesignalUser(user: User) {
     const { onesignalAppId, restApiKey, ...rest } = this.organisationDetails.find(e => e.name == user.org);
-    console.log('on create user orgDetails: ', rest);
     const payload = { identity: { external_id: user.id } };
     console.log('create user payload: ', payload);
     try {
@@ -73,7 +125,7 @@ export class AppService {
           e.subscriptions = res.data?.subscriptions;
         }
       });
-      console.log(res.data)
+      console.log('create user success: ', res.data)
     } catch(e) {
       //console.log('error while creating user', e);
       console.log('error data while creating user', e.response.data);
