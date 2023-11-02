@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
+import uuidV4 from 'uuid';
 
 export interface NotificationPayload { 
   msg: string, 
@@ -48,7 +49,7 @@ export class AppService {
   async registerUser(data: User) {
     const foundUser = this.users.find(e => e.email == data.email && e.org == data.org);
     if(foundUser) return null;
-    const id = data.email + '-' + Math.random().toString();
+    const id = uuidV4.v4();
     const user = { ...data, id };
     this.users.push(user);
 
