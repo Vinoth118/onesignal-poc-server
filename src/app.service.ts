@@ -73,7 +73,7 @@ export class AppService {
     const payload  = {
       app_id: orgDetails.onesignalAppId,
       name: `Message from ${orgDetails.id}`,
-      content: {
+      contents: {
         en: data.msg,
         es: data.msg
       },
