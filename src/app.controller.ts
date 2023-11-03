@@ -54,8 +54,9 @@ export class AppController {
   @Post('/notify')
   async notify(@PlainBody() data: NotificationPayload) {
     const result = await this.appService.notify(data);
+    const isSucceeded = result.length > 1 || result[0].success;
     return {
-      success: result != null,
+      success: isSucceeded,
       data: result
     }
   }

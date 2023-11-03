@@ -69,30 +69,51 @@ export class AppService {
   }
 
   async notify(data: NotificationPayload) {
-    let apiKey = '';
     const payload  = { contents: { en: data.msg } };
     switch(data.to) {
       case 'all': {
-        break;
+        payload['name'] = `Message to all users`,
+        payload['included_segments'] = ["Total Subscriptions"];
+        try {
+          const responses = await Promise.all(this.organisationDetails.map(org => this.sendNotification({ ...payload, app_id: org.onesignalAppId }, org.restApiKey, org.id)));
+          return responses;
+        } catch(e) {
+          console.log('notification failed for all: ', e)
+        }
+        return null;
       }
       case 'org': {
         let orgDetails = this.organisationDetails.find(e => e.name === data.org);
-        apiKey = orgDetails.restApiKey;
         payload['app_id'] = orgDetails.onesignalAppId;
         payload['name'] = `Message to ${orgDetails.id} all users`,
         payload['included_segments'] = ["Total Subscriptions"];
-        break;
+        try {
+          const response = await this.sendNotification(payload, orgDetails.restApiKey, orgDetails.id);
+          return [response];
+        } catch(e) {
+          console.log('notification failed for org all: ', e)
+        }
+        return null;
       }
       case 'user': {
         const user = this.users.find(e => e.id == data.userId);
-        const org = this.organisationDetails.find(e => e.name == user.org);
-        apiKey = org.restApiKey;
-        payload['app_id'] = org.onesignalAppId;
-        payload['name'] = `Message to ${org.id} - ${user.name}`,
+        const orgDetails = this.organisationDetails.find(e => e.name == user.org);
+        payload['app_id'] = orgDetails.onesignalAppId;
+        payload['name'] = `Message to ${orgDetails.id} - ${user.name}`,
         payload['include_aliases'] = { external_id: [user.id] };
-        break;
+        payload['target_channel'] = 'push';
+        try {
+          const response = await this.sendNotification(payload, orgDetails.restApiKey, orgDetails.id);
+          return [response];
+        } catch(e) {
+          console.log('notification failed for one user: ', e)
+        }
+        return null;
       }
     }
+  }
+
+  async sendNotification(payload: { [x: string]: any }, apiKey: string, org: string) {
     try {
       const res = await axios.post(`https://onesignal.com/api/v1/notifications`, payload, {
         headers: {
@@ -100,14 +121,15 @@ export class AppService {
         }
       });
       if(res.data) {
-        return res.data;
+        return { success: true, org: org, data: res.data };
+      } else {
+        return { success: false, org: org, data: null };;
       }
     } catch(e) {
       console.log(e);
       console.log('error data while sending notification: ', e.response.data)
-      return null;
+      return { success: false, org: org, data: null };;
     }
-    
   }
 
   async createOnesignalUser(user: User) {
