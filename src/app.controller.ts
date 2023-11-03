@@ -1,6 +1,7 @@
 import { Body, Controller, createParamDecorator, ExecutionContext, Get, Post, HttpException, HttpStatus, BadRequestException } from '@nestjs/common';
 import { getSubdomain } from 'tldts';
-import { AppService, NotificationPayload, User } from './app.service';
+import { AppService, NotificationPayload } from './app.service';
+import { UserType } from './user.model';
 var rawbody = require('raw-body')
 
 const Subdomain = createParamDecorator(
@@ -32,13 +33,20 @@ export class AppController {
   }
 
   @Post('/register')
-  async registerUser(@Subdomain() subdomain: 'vinoth' | 'vijay' | 'johny', @PlainBody() data: User & { registerFrom: 'CLIENT' | 'ADMIN' }) {
+  async registerUser(@Subdomain() subdomain: 'vinoth' | 'vijay' | 'johny', @PlainBody() data: UserType & { registerFrom: 'CLIENT' | 'ADMIN' }) {
     const { registerFrom, org, ...rest } = data;
     const registerUserData = { ...rest, org: registerFrom == 'ADMIN' ? org : subdomain };
-    const result = await this.appService.registerUser(registerUserData);
-    return {
-      success: result != null,
-      data: result
+    try {
+      const result = await this.appService.registerUser(registerUserData);
+      return {
+        success: result != null,
+        data: result
+      }
+    } catch(e) {
+      return {
+        success: false,
+        message: 'RECORD_EXIST'
+      }
     }
   }
 

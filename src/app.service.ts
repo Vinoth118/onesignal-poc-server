@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
+import { Model } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
+import { UserDocument, User, UserType } from './user.model';
+import { InjectModel } from '@nestjs/mongoose';
+
 
 export interface NotificationPayload { 
   msg: string, 
@@ -9,18 +13,9 @@ export interface NotificationPayload {
   userId: string
 }
 
-export interface User {
-  id: string,
-  name: string,
-  email: string,
-  org: 'vinoth' | 'vijay' | 'johny',
-  osId?: string,
-  subscriptions?: { id: string, token: string, type: string }[]
-}
-
 @Injectable()
 export class AppService {
-  users: User[] = [];
+  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
   organisationDetails = [
     {
       name: 'vinoth',
@@ -43,25 +38,27 @@ export class AppService {
   ];
 
   async getUsers() {
-    return this.users;
+    return this.userModel.find();
+  }
+  
+  async getUser(query: { [x: string]: string }) {
+    return this.userModel.findOne(query);
   }
 
-  async registerUser(data: User) {
-    const foundUser = this.users.find(e => e.email == data.email && e.org == data.org);
-    if(foundUser) return null;
-    const id = data.email + Math.random().toString();
-    const user = { ...data, id };
-    this.users.push(user);
-
+  async registerUser(data: UserType) {
+    const createdUser = await this.userModel.create(data);
+    const createdUserInOneSignal = await this.createOnesignalUser(createdUser);
+    if(createdUserInOneSignal) {
+      createdUser.osId = createdUserInOneSignal.identity.onesignal_id;
+    }
+    const updatedUser = await createdUser.save();
     const orgDetails = this.organisationDetails.find(e => e.name == data.org);
-    await this.createOnesignalUser(user);
 
-    return { user, oneSignalAppId: orgDetails.onesignalAppId };
+    return { user: updatedUser, oneSignalAppId: orgDetails.onesignalAppId }
   }
 
   async loginUser(email: string, org: string) {
-    console.log('onLogin', this.users);
-    const foundUser = this.users.find(e => e.email == email && e.org == org);
+    const foundUser = await this.getUser({ email: email, org: org });
     if(foundUser == null) return null;
 
     const orgDetails = this.organisationDetails.find(e => e.name == org);
@@ -96,7 +93,7 @@ export class AppService {
         return null;
       }
       case 'user': {
-        const user = this.users.find(e => e.id == data.userId);
+        const user = await this.getUser({ _id: data.userId });
         const orgDetails = this.organisationDetails.find(e => e.name == user.org);
         payload['app_id'] = orgDetails.onesignalAppId;
         payload['name'] = `Message to ${orgDetails.id} - ${user.name}`,
@@ -132,19 +129,14 @@ export class AppService {
     }
   }
 
-  async createOnesignalUser(user: User) {
+  async createOnesignalUser(user: UserDocument) {
     const { onesignalAppId, restApiKey, ...rest } = this.organisationDetails.find(e => e.name == user.org);
-    const payload = { identity: { external_id: user.id } };
+    const payload = { identity: { external_id: user._id } };
     console.log('create user payload: ', payload);
     try {
       const res = await axios.post(`https://onesignal.com/api/v1/apps/${onesignalAppId}/users`, payload);
-      this.users.forEach(e => {
-        if(e.id == user.id) { 
-          e.osId = res.data.identity.onesignal_id;
-          e.subscriptions = res.data?.subscriptions;
-        }
-      });
       console.log('create user success: ', res.data)
+      return res.data;
     } catch(e) {
       //console.log('error while creating user', e);
       console.log('error data while creating user', e.response.data);
@@ -152,3 +144,4 @@ export class AppService {
   }
 
 }
+
