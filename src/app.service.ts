@@ -49,7 +49,7 @@ export class AppService {
   async registerUser(data: User) {
     const foundUser = this.users.find(e => e.email == data.email && e.org == data.org);
     if(foundUser) return null;
-    const id = uuidv4();
+    const id = data.email + Math.random().toString();
     const user = { ...data, id };
     this.users.push(user);
 
@@ -69,33 +69,27 @@ export class AppService {
   }
 
   async notify(data: NotificationPayload) {
-    let orgDetails = this.organisationDetails.find(e => e.name === data.org);
-    if(orgDetails == null) orgDetails = this.organisationDetails[0];
-    let apiKey = orgDetails.restApiKey;
-    const payload  = {
-      app_id: orgDetails.onesignalAppId,
-      name: `Message from ${orgDetails.name}`,
-      contents: {
-        en: data.msg,
-        es: data.msg
-      },
-      included_segments: [
-        "Total Subscriptions"
-      ],
-    };
+    let apiKey = '';
+    const payload  = { contents: { en: data.msg } };
     switch(data.to) {
       case 'all': {
         break;
       }
       case 'org': {
+        let orgDetails = this.organisationDetails.find(e => e.name === data.org);
+        apiKey = orgDetails.restApiKey;
+        payload['app_id'] = orgDetails.onesignalAppId;
+        payload['name'] = `Message to ${orgDetails.id} all users`,
+        payload['included_segments'] = ["Total Subscriptions"];
         break;
       }
       case 'user': {
         const user = this.users.find(e => e.id == data.userId);
         const org = this.organisationDetails.find(e => e.name == user.org);
-        payload['app_id'] = org.onesignalAppId;
-        payload['external_id'] = user.id;
         apiKey = org.restApiKey;
+        payload['app_id'] = org.onesignalAppId;
+        payload['name'] = `Message to ${org.id} - ${user.name}`,
+        payload['include_aliases'] = { external_id: [user.id] };
         break;
       }
     }
